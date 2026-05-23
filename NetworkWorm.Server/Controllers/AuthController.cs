@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetworkWorm.Server.Data;
 using NetworkWorm.Server.Models;
@@ -22,6 +22,11 @@ namespace NetworkWorm.Server.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
+            if (request == null || string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
+            {
+                return BadRequest(new { message = "Логин и пароль обязательны" });
+            }
+
             // Ищем пользователя в базе данных
             var user = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == request.Password);
@@ -45,13 +50,14 @@ namespace NetworkWorm.Server.Controllers
 
             return Ok(new LoginResponse
             {
+                Success = true,
                 Token = token,
                 User = new UserInfo
                 {
                     Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    Role = user.Role
+                    Username = user.Username ?? "",
+                    Email = user.Email ?? "",
+                    Role = user.Role ?? "student"
                 }
             });
         }
@@ -59,21 +65,22 @@ namespace NetworkWorm.Server.Controllers
 
     public class LoginRequest
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
     }
 
     public class LoginResponse
     {
-        public string Token { get; set; }
-        public UserInfo User { get; set; }
+        public bool Success { get; set; }
+        public string Token { get; set; } = "";
+        public UserInfo User { get; set; } = new UserInfo();
     }
 
     public class UserInfo
     {
         public int Id { get; set; }
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string Role { get; set; }
+        public string Username { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Role { get; set; } = "";
     }
 }
