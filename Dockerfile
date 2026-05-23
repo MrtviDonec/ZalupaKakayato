@@ -2,12 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Копируем csproj и восстанавливаем зависимости
-COPY NetworkWorm.Server.csproj .
-RUN dotnet restore
-
-# Копируем остальной код
+# Копируем ВСЕ файлы проекта (не только csproj)
 COPY . .
+
+# Восстанавливаем зависимости
+RUN dotnet restore
 
 # Собираем приложение
 RUN dotnet publish -c Release -o /app/publish
@@ -15,11 +14,6 @@ RUN dotnet publish -c Release -o /app/publish
 # Этап 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-
-# Устанавливаем дополнительные пакеты (опционально)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
 
 # Копируем собранное приложение
 COPY --from=build /app/publish .
@@ -30,7 +24,6 @@ USER appuser
 
 # Порт для приложения
 EXPOSE 8080
-EXPOSE 8081
 
 # Запускаем приложение
 ENV ASPNETCORE_URLS=http://+:8080
