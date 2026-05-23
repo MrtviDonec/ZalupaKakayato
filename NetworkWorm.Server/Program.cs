@@ -3,6 +3,7 @@ using NetworkWorm.Server.Data;
 using NetworkWorm.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
 
 builder.Services.AddSignalR();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -22,9 +23,12 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("AllowAll");
+
+app.MapControllers();
+
 app.MapHub<ChatHub>("/learningHub");
-app.MapGet("/", () => "SignalR ñåðâåð ðàáîòàåò!");
-app.MapGet("/test", () => "Ñåðâåð æèâ, áëÿ!");
+app.MapGet("/", () => "SignalR Ã±Ã¥Ã°Ã¢Ã¥Ã° Ã°Ã Ã¡Ã®Ã²Ã Ã¥Ã²!");
+app.MapGet("/test", () => "Ã‘Ã¥Ã°Ã¢Ã¥Ã° Ã¦Ã¨Ã¢, Ã¡Ã«Ã¿!");
 
 using (var scope = app.Services.CreateScope())
 {
