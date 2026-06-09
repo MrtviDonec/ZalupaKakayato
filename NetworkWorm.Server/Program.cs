@@ -13,7 +13,7 @@ builder.Services.AddSignalR();
 // Подключение к Supabase
 var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wregsgpisgfvjplshqqo;Password=?$TpT!2y!5*R9Hv;SSL Mode=Prefer;Trust Server Certificate=true;";
+    ?? "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wregsgpisgfvjplshqqo;Password=?$TpT!2y!5*R9Hv;SSL Mode=Disable;Trust Server Certificate=true;";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
