@@ -54,10 +54,12 @@ namespace NetworkWorm.Server.Controllers
                 return StatusCode(500, new { message = "Ошибка подключения к базе данных" });
             }
 
+
+
             // Ищем пользователя
             var user = await _dbContext.Users
-                .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == request.Password);
-
+            .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == request.Password);
+    
             if (user == null)
             {
                 // Логируем попытку входа
@@ -65,12 +67,18 @@ namespace NetworkWorm.Server.Controllers
                 return Unauthorized(new { message = "Неверный логин или пароль" });
             }
 
+
+
             if (!user.IsActive)
             {
                 return Unauthorized(new { message = "Учетная запись заблокирована" });
             }
 
-            var token = _authService.GenerateToken(user.Id, user.Username, user.Role);
+
+
+             var token = _authService.GenerateToken(user.Id.ToString(), user.Username, user.Role);
+
+
 
             user.LastLogin = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
