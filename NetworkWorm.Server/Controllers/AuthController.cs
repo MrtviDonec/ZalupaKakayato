@@ -19,7 +19,7 @@ namespace NetworkWorm.Server.Controllers
             _authService = authService;
         }
 
-        [HttpPost("test-db")]
+        [HttpGet("test-db")]
         public async Task<IActionResult> TestDb()
         {
             try
