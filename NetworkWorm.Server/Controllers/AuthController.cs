@@ -19,6 +19,21 @@ namespace NetworkWorm.Server.Controllers
             _authService = authService;
         }
 
+        [HttpPost("test-db")]
+        public async Task<IActionResult> TestDb()
+        {
+            try
+            {
+                var users = await _dbContext.Users.ToListAsync();
+                return Ok(new { count = users.Count, users = users.Select(u => new { u.Username, u.Role }) });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+        
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -76,6 +91,7 @@ namespace NetworkWorm.Server.Controllers
             });
         }
     }
+    
 
     public class LoginRequest
     {
