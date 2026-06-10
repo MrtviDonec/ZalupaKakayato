@@ -5,35 +5,33 @@ using NetworkWorm.Server.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Регистрируем сервисы
-builder.Services.AddControllers(); // <-- ОБЯЗАТЕЛЬНО для работы API контроллеров
+builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ✅ ВОТ ЭТА СТРОКА НУЖНА!
+builder.Services.AddScoped<NetworkWorm.Server.Services.AuthService>();
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true) 
+        policy.SetIsOriginAllowed(_ => true)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
     });
 });
 
-builder.Services.AddScoped<NetworkWorm.Server.Services.AuthService>();
 var app = builder.Build();
 
 // 2. Настраиваем конвейер запросов
 app.UseCors("AllowAll");
-
-// 3. Маппим маршруты (ЭТО ГЛАВНОЕ!)
-app.MapControllers(); // <-- БЕЗ ЭТОЙ СТРОКИ API НЕ РАБОТАЮТ
+app.MapControllers();
 app.MapHub<ChatHub>("/learningHub");
-
-// 4. Простые тестовые маршруты для проверки
-app.MapGet("/", () => Results.Json(new { status = "running", service = "NetworkWorm Server" }));
-app.MapGet("/test", () => "Server is alive!");
+app.MapGet("/", () => "SignalR сервер работает!");
+app.MapGet("/test", () => "Сервер жив!");
 
 using (var scope = app.Services.CreateScope())
 {
