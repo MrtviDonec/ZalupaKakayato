@@ -21,6 +21,7 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddScoped<NetworkWorm.Server.Services.AuthService>();
 var app = builder.Build();
 
 // 2. Настраиваем конвейер запросов
