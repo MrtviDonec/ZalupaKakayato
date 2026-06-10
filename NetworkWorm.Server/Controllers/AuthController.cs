@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetworkWorm.Server.Data;
 using NetworkWorm.Server.Models;
@@ -27,11 +27,26 @@ namespace NetworkWorm.Server.Controllers
                 return BadRequest(new { message = "Логин и пароль обязательны" });
             }
 
+            // Проверяем подключение к БД
+            try
+            {
+                var canConnect = await _dbContext.Database.CanConnectAsync();
+                Console.WriteLine($"Database connected: {canConnect}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Database connection error: {ex.Message}");
+                return StatusCode(500, new { message = "Ошибка подключения к базе данных" });
+            }
+
+            // Ищем пользователя
             var user = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == request.Password);
 
             if (user == null)
             {
+                // Логируем попытку входа
+                Console.WriteLine($"Login failed for user: {request.Username}");
                 return Unauthorized(new { message = "Неверный логин или пароль" });
             }
 
@@ -44,6 +59,8 @@ namespace NetworkWorm.Server.Controllers
 
             user.LastLogin = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
+
+            Console.WriteLine($"Login successful for user: {request.Username}");
 
             return Ok(new
             {
@@ -58,5 +75,11 @@ namespace NetworkWorm.Server.Controllers
                 }
             });
         }
+    }
+
+    public class LoginRequest
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
     }
 }
