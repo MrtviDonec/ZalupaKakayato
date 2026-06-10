@@ -30,21 +30,22 @@ namespace NetworkWorm.Server.Data
             base.OnModelCreating(modelBuilder);
 
             // Настройка таблицы Users
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.ToTable("users");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).HasColumnName("id_user");
-                entity.Property(e => e.Username).HasColumnName("username");
-                entity.Property(e => e.Email).HasColumnName("email");
-                entity.Property(e => e.PasswordHash).HasColumnName("password_hash");
-                entity.Property(e => e.Role).HasColumnName("role");
-                entity.Property(e => e.LastLogin).HasColumnName("last_login");
-                entity.Property(e => e.IsActive).HasColumnName("is_active");
-                entity.Property(e => e.TotalScore).HasColumnName("total_score");
-                entity.Property(e => e.ConnectionId).HasColumnName("connection_id");
-                entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            });
+            // Настройка таблицы Users (для Supabase Auth)
+                modelBuilder.Entity<User>(entity =>
+                {
+                    entity.ToTable("users");
+                    entity.HasKey(e => e.Id);
+                    entity.Property(e => e.Id).HasColumnName("id");
+                    entity.Property(e => e.Username).HasColumnName("username");
+                    entity.Property(e => e.Email).HasColumnName("email");
+                    entity.Property(e => e.PasswordHash).HasColumnName("encrypted_password");
+                    entity.Property(e => e.Role).HasColumnName("role");
+                    entity.Property(e => e.LastLogin).HasColumnName("last_sign_in_at");
+                    entity.Property(e => e.IsActive).HasColumnName("is_active");
+                    entity.Property(e => e.TotalScore).HasColumnName("total_score");
+                    entity.Property(e => e.ConnectionId).HasColumnName("connection_id");
+                    entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+                });
 
             // Настройка таблицы Chats
             modelBuilder.Entity<Chat>(entity =>
