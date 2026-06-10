@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NetworkWorm.Server.Data;
 using NetworkWorm.Server.Models;
@@ -20,7 +20,7 @@ namespace NetworkWorm.Server.Hubs
         //public async Task TestConnection()
         //{
         //    _logger.LogInformation($"TestConnection called from client {Context.ConnectionId} !!!");
-        //    await Clients.Caller.SendAsync("TestResponse", "хелло ёпта!");
+        //    await Clients.Caller.SendAsync("TestResponse", "хелло!");
         //}
 
         public override async Task OnConnectedAsync()
