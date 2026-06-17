@@ -196,8 +196,9 @@ namespace NetworkWorm.Server.Hubs
                     CreatedAt = newChat.CreatedAt,
                     CreatedBy = newChat.CreatedBy
                 };
-
-                await Clients.Caller.SendAsync("NewChatCreated", newChatDto);
+                
+                await Clients.Group($"chat_{chatId}").SendAsync("NewMessage", messageDto);
+                //await Clients.Caller.SendAsync("NewChatCreated", newChatDto);
             }
             catch (Exception ex)
             {
