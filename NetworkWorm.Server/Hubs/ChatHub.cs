@@ -187,12 +187,10 @@ namespace NetworkWorm.Server.Hubs
                     Id = newChat.Id,
                     Name = chatName,
                     CreatedAt = newChat.CreatedAt,
-                    CreatedBy = newChat.CreatedBy,
-                    LastMessage = (string?)null,
-                    LastMessageTime = (DateTime?)null,
-                    UnreadCount = 0,
-                    ParticipantCount = 2
+                    CreatedBy = newChat.CreatedBy
                 };
+
+                await Clients.Caller.SendAsync("NewChatCreated", chatDto);
 
                 await Clients.Caller.SendAsync("NewChatCreated", chatDto);
             }
