@@ -10,6 +10,7 @@ namespace NetworkWorm.Server.Hubs
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<ChatHub> _logger;
+        
 
         public ChatHub(ApplicationDbContext dbContext, ILogger<ChatHub> logger)
         {
@@ -180,7 +181,20 @@ namespace NetworkWorm.Server.Hubs
 
                 _logger.LogInformation($"Chat created successfully: {newChat.Id}");
 
-                await Clients.Caller.SendAsync("NewChatCreated", newChat);
+                //await Clients.Caller.SendAsync("NewChatCreated", newChat);
+                var chatDto = new
+                {
+                    Id = newChat.Id,
+                    Name = chatName,
+                    CreatedAt = newChat.CreatedAt,
+                    CreatedBy = newChat.CreatedBy,
+                    LastMessage = (string?)null,
+                    LastMessageTime = (DateTime?)null,
+                    UnreadCount = 0,
+                    ParticipantCount = 2
+                };
+
+                await Clients.Caller.SendAsync("NewChatCreated", chatDto);
             }
             catch (Exception ex)
             {
