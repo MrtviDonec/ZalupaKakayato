@@ -6,6 +6,19 @@ using Npgsql;
 
 namespace NetworkWorm.Server.Hubs
 {
+    // 👇 DTO выносим за пределы класса ChatHub, чтобы он был доступен везде
+    public class ChatDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int CreatedBy { get; set; }
+        public string LastMessage { get; set; }
+        public DateTime? LastMessageTime { get; set; }
+        public int UnreadCount { get; set; }
+        public int ParticipantCount { get; set; }
+    }
+
     public class ChatHub : Hub
     {
         private readonly ApplicationDbContext _dbContext;
@@ -16,12 +29,6 @@ namespace NetworkWorm.Server.Hubs
             _dbContext = dbContext;
             _logger = logger;
         }
-
-        //public async Task TestConnection()
-        //{
-        //    _logger.LogInformation($"TestConnection called from client {Context.ConnectionId} !!!");
-        //    await Clients.Caller.SendAsync("TestResponse", "хелло ёпта!");
-        //}
 
         public override async Task OnConnectedAsync()
         {
@@ -46,25 +53,12 @@ namespace NetworkWorm.Server.Hubs
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"chat_{chatId}");
         }
 
-        public class ChatDto
-        {
-            public int Id { get; set; }
-            public string Name { get; set; }
-            public DateTime CreatedAt { get; set; }
-            public int CreatedBy { get; set; }
-            public string LastMessage { get; set; }
-            public DateTime? LastMessageTime { get; set; }
-            public int UnreadCount { get; set; }
-            public int ParticipantCount { get; set; }
-        }
-
         public async Task SendMessage(int chatId, string message, int userId)
         {
             _logger.LogInformation($"SendMessage called: chat={chatId}, user={userId}, message={message}");
 
             try
             {
-                // ПРЯМОЙ SQL ЗАПРОС
                 var sql = @"
             INSERT INTO chat_messages (id_chat, id_user, message, sent_at, is_read, is_edited)
             VALUES (@chatId, @userId, @message, @sentAt, false, false)
@@ -72,11 +66,11 @@ namespace NetworkWorm.Server.Hubs
 
                 var parameters = new[]
                 {
-            new Npgsql.NpgsqlParameter("@chatId", chatId),
-            new Npgsql.NpgsqlParameter("@userId", userId),
-            new Npgsql.NpgsqlParameter("@message", message),
-            new Npgsql.NpgsqlParameter("@sentAt", DateTime.UtcNow)
-        };
+                    new Npgsql.NpgsqlParameter("@chatId", chatId),
+                    new Npgsql.NpgsqlParameter("@userId", userId),
+                    new Npgsql.NpgsqlParameter("@message", message),
+                    new Npgsql.NpgsqlParameter("@sentAt", DateTime.UtcNow)
+                };
 
                 int messageId;
                 using (var command = _dbContext.Database.GetDbConnection().CreateCommand())
@@ -92,7 +86,6 @@ namespace NetworkWorm.Server.Hubs
 
                 _logger.LogInformation($"Message saved to DB with ID: {messageId}");
 
-                // Получаем имя пользователя через прямой SQL
                 var userSql = "SELECT username FROM users WHERE id_user = @userId";
                 string username = "Unknown";
 
@@ -109,7 +102,6 @@ namespace NetworkWorm.Server.Hubs
                         username = result.ToString();
                 }
 
-                // Отправляем сообщение в группу
                 var messageDto = new
                 {
                     Id = messageId,
@@ -155,7 +147,21 @@ namespace NetworkWorm.Server.Hubs
                     if (existingChat != null)
                     {
                         _logger.LogInformation($"Existing chat found: {existingChat.Id}");
-                        await Clients.Caller.SendAsync("NewChatCreated", existingChat);
+                        
+                        // 👇 ИСПРАВЛЕНО: отправляем DTO вместо existingChat
+                        var chatDto = new ChatDto
+                        {
+                            Id = existingChat.Id,
+                            Name = existingChat.Name,
+                            CreatedAt = existingChat.CreatedAt,
+                            CreatedBy = existingChat.CreatedBy,
+                            LastMessage = null,
+                            LastMessageTime = null,
+                            UnreadCount = 0,
+                            ParticipantCount = 2
+                        };
+                        
+                        await Clients.Caller.SendAsync("NewChatCreated", chatDto);
                         return;
                     }
                 }
@@ -192,7 +198,20 @@ namespace NetworkWorm.Server.Hubs
 
                 _logger.LogInformation($"Chat created successfully: {newChat.Id}");
 
-                await Clients.Caller.SendAsync("NewChatCreated", newChat);
+                // 👇 ИСПРАВЛЕНО: отправляем DTO вместо newChat
+                var chatDto = new ChatDto
+                {
+                    Id = newChat.Id,
+                    Name = chatName,
+                    CreatedAt = newChat.CreatedAt,
+                    CreatedBy = newChat.CreatedBy,
+                    LastMessage = null,
+                    LastMessageTime = null,
+                    UnreadCount = 0,
+                    ParticipantCount = 2
+                };
+
+                await Clients.Caller.SendAsync("NewChatCreated", chatDto);
             }
             catch (Exception ex)
             {
