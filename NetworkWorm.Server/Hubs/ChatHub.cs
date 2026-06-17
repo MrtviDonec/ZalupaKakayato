@@ -46,6 +46,18 @@ namespace NetworkWorm.Server.Hubs
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"chat_{chatId}");
         }
 
+        public class ChatDto
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public DateTime CreatedAt { get; set; }
+            public int CreatedBy { get; set; }
+            public string LastMessage { get; set; }
+            public DateTime? LastMessageTime { get; set; }
+            public int UnreadCount { get; set; }
+            public int ParticipantCount { get; set; }
+        }
+
         public async Task SendMessage(int chatId, string message, int userId)
         {
             _logger.LogInformation($"SendMessage called: chat={chatId}, user={userId}, message={message}");
