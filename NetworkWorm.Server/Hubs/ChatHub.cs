@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using NetworkWorm.Server.Data;
 using NetworkWorm.Server.Models;
@@ -10,19 +10,12 @@ namespace NetworkWorm.Server.Hubs
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<ChatHub> _logger;
-        
 
         public ChatHub(ApplicationDbContext dbContext, ILogger<ChatHub> logger)
         {
             _dbContext = dbContext;
             _logger = logger;
         }
-
-        //public async Task TestConnection()
-        //{
-        //    _logger.LogInformation($"TestConnection called from client {Context.ConnectionId} !!!");
-        //    await Clients.Caller.SendAsync("TestResponse", "хелло ёпта!");
-        //}
 
         public override async Task OnConnectedAsync()
         {
@@ -38,13 +31,19 @@ namespace NetworkWorm.Server.Hubs
 
         public async Task JoinChatGroup(int chatId)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{chatId}");
-            _logger.LogInformation($"Client {Context.ConnectionId} joined chat {chatId}");
+            var groupName = $"chat_{chatId}";
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            _logger.LogInformation($"Client {Context.ConnectionId} joined group {groupName}");
+            
+            // Подтверждение для клиента
+            await Clients.Caller.SendAsync("JoinGroupConfirmation", chatId, "success");
         }
 
         public async Task LeaveChatGroup(int chatId)
         {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"chat_{chatId}");
+            var groupName = $"chat_{chatId}";
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+            _logger.LogInformation($"Client {Context.ConnectionId} left group {groupName}");
         }
 
         public async Task SendMessage(int chatId, string message, int userId)
@@ -55,17 +54,17 @@ namespace NetworkWorm.Server.Hubs
             {
                 // ПРЯМОЙ SQL ЗАПРОС
                 var sql = @"
-            INSERT INTO chat_messages (id_chat, id_user, message, sent_at, is_read, is_edited)
-            VALUES (@chatId, @userId, @message, @sentAt, false, false)
-            RETURNING id_message";
+                    INSERT INTO chat_messages (id_chat, id_user, message, sent_at, is_read, is_edited)
+                    VALUES (@chatId, @userId, @message, @sentAt, false, false)
+                    RETURNING id_message";
 
                 var parameters = new[]
                 {
-            new Npgsql.NpgsqlParameter("@chatId", chatId),
-            new Npgsql.NpgsqlParameter("@userId", userId),
-            new Npgsql.NpgsqlParameter("@message", message),
-            new Npgsql.NpgsqlParameter("@sentAt", DateTime.UtcNow)
-        };
+                    new Npgsql.NpgsqlParameter("@chatId", chatId),
+                    new Npgsql.NpgsqlParameter("@userId", userId),
+                    new Npgsql.NpgsqlParameter("@message", message),
+                    new Npgsql.NpgsqlParameter("@sentAt", DateTime.UtcNow)
+                };
 
                 int messageId;
                 using (var command = _dbContext.Database.GetDbConnection().CreateCommand())
@@ -112,6 +111,7 @@ namespace NetworkWorm.Server.Hubs
                     EditedAt = (DateTime?)null
                 };
 
+                // 👇 ОТПРАВЛЯЕМ В ГРУППУ (всем участникам)
                 await Clients.Group($"chat_{chatId}").SendAsync("NewMessage", messageDto);
                 _logger.LogInformation($"Message sent to group chat_{chatId}");
             }
@@ -128,6 +128,7 @@ namespace NetworkWorm.Server.Hubs
             {
                 _logger.LogInformation($"CreatePrivateChat called: teacher={teacherId}, student={studentId}");
 
+                // Проверяем существующий чат
                 var existingChatId = await _dbContext.ChatParticipants
                     .Where(cp => cp.UserId == teacherId)
                     .Select(cp => cp.ChatId)
@@ -144,11 +145,25 @@ namespace NetworkWorm.Server.Hubs
                     if (existingChat != null)
                     {
                         _logger.LogInformation($"Existing chat found: {existingChat.Id}");
-                        await Clients.Caller.SendAsync("NewChatCreated", existingChat);
+
+                        // Отправляем DTO
+                        var chatDto = new
+                        {
+                            Id = existingChat.Id,
+                            Name = existingChat.Name,
+                            CreatedAt = existingChat.CreatedAt,
+                            CreatedBy = existingChat.CreatedBy
+                        };
+
+                        await Clients.Caller.SendAsync("NewChatCreated", chatDto);
+                        
+                        await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{existingChat.Id}");
+                        
                         return;
                     }
                 }
 
+                // Получаем пользователей
                 var teacher = await _dbContext.Users.FindAsync(teacherId);
                 var student = await _dbContext.Users.FindAsync(studentId);
 
@@ -170,6 +185,7 @@ namespace NetworkWorm.Server.Hubs
                 _dbContext.Chats.Add(newChat);
                 await _dbContext.SaveChangesAsync();
 
+                // Добавляем участников
                 var participants = new[]
                 {
                     new ChatParticipant { ChatId = newChat.Id, UserId = teacherId, JoinedAt = DateTime.UtcNow, IsTeacher = true },
@@ -181,7 +197,10 @@ namespace NetworkWorm.Server.Hubs
 
                 _logger.LogInformation($"Chat created successfully: {newChat.Id}");
 
-                //await Clients.Caller.SendAsync("NewChatCreated", newChat);
+                
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{newChat.Id}");
+                _logger.LogInformation($"Client {Context.ConnectionId} added to group chat_{newChat.Id}");
+
                 var chatDto = new
                 {
                     Id = newChat.Id,
@@ -189,8 +208,6 @@ namespace NetworkWorm.Server.Hubs
                     CreatedAt = newChat.CreatedAt,
                     CreatedBy = newChat.CreatedBy
                 };
-
-                await Clients.Caller.SendAsync("NewChatCreated", chatDto);
 
                 await Clients.Caller.SendAsync("NewChatCreated", chatDto);
             }
