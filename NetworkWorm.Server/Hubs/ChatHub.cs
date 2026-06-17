@@ -106,6 +106,7 @@ namespace NetworkWorm.Server.Hubs
                     EditedAt = (DateTime?)null
                 };
 
+                // ✅ Отправляем ВСЕМ в группе (обоим участникам)
                 await Clients.Group($"chat_{chatId}").SendAsync("NewMessage", messageDto);
                 _logger.LogInformation($"Message sent to group chat_{chatId}");
             }
@@ -139,7 +140,6 @@ namespace NetworkWorm.Server.Hubs
                     {
                         _logger.LogInformation($"Existing chat found: {existingChat.Id}");
 
-                        // 👇 ИСПРАВЛЕНО: используем новое имя переменной
                         var existingChatDto = new
                         {
                             Id = existingChat.Id,
@@ -186,9 +186,11 @@ namespace NetworkWorm.Server.Hubs
 
                 _logger.LogInformation($"Chat created successfully: {newChat.Id}");
 
+                // ✅ Добавляем создателя в группу
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"chat_{newChat.Id}");
                 _logger.LogInformation($"Client {Context.ConnectionId} added to group chat_{newChat.Id}");
 
+                // ✅ Отправляем DTO создателю
                 var newChatDto = new
                 {
                     Id = newChat.Id,
@@ -197,8 +199,10 @@ namespace NetworkWorm.Server.Hubs
                     CreatedBy = newChat.CreatedBy
                 };
                 
-                await Clients.Group($"chat_{chatId}").SendAsync("NewMessage", messageDto);
-                //await Clients.Caller.SendAsync("NewChatCreated", newChatDto);
+                await Clients.Caller.SendAsync("NewChatCreated", newChatDto);
+                
+                // ❌ УДАЛИТЬ ЭТУ СТРОКУ (она вызывает ошибку)
+                // await Clients.Group($"chat_{chatId}").SendAsync("NewMessage", messageDto);
             }
             catch (Exception ex)
             {
