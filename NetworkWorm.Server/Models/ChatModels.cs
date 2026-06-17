@@ -8,11 +8,7 @@ namespace NetworkWorm.Server.Models
     public string? Name { get; set; }
     public DateTime CreatedAt { get; set; }
     public int CreatedBy { get; set; }
-        
-    public string? LastMessage { get; set; }        
-    public DateTime? LastMessageTime { get; set; }  
-    public int UnreadCount { get; set; }            
-    public int ParticipantCount { get; set; }       
+    
 }
 
     public class ChatParticipant
