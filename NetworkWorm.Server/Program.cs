@@ -6,19 +6,40 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Добавляем контроллеры
 builder.Services.AddControllers();
-
-// Добавляем SignalR
 builder.Services.AddSignalR();
 
-// Подключение к Supabase
-var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wregsgpisgfvjplshqqo;Password=?$TpT!2y!5*R9Hv;SSL Mode=Prefer;Trust Server Certificate=true;";
+// ============================================
+// 🔄 ВЫБОР ИСТОЧНИКА ДАННЫХ
+// ============================================
+
+// Определяем, какую БД использовать
+var dbSource = Environment.GetEnvironmentVariable("DB_SOURCE") ?? "supabase";
+
+string connectionString;
+
+if (dbSource == "local")
+{
+    // Локальный PostgreSQL
+    connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__LocalConnection")
+        ?? builder.Configuration.GetConnectionString("LocalConnection")
+        ?? "Host=localhost;Port=5432;Database=networkworm;Username=postgres;Password=123;";
+    
+    Console.WriteLine($"✅ Используется ЛОКАЛЬНАЯ БД: localhost");
+}
+else
+{
+    // Supabase (по умолчанию)
+    connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+        ?? builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? "Host=aws-0-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wregsgpisgfvjplshqqo;Password=?$TpT!2y!5*R9Hv;SSL Mode=Prefer;Trust Server Certificate=true;";
+    
+    Console.WriteLine($"✅ Используется SUPABASE: aws-0-eu-west-1.pooler.supabase.com");
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// CORS для WPF клиента
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -32,12 +53,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Настройка pipeline
 app.UseCors("AllowAll");
 app.MapControllers();
 app.MapHub<ChatHub>("/learningHub");
 
-// Простые эндпоинты для проверки
 app.MapGet("/", () => new { status = "running", service = "NetworkWorm Server" });
 app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow });
 
@@ -48,11 +67,11 @@ using (var scope = app.Services.CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await dbContext.Database.EnsureCreatedAsync();
-        Console.WriteLine("Database connection successful");
+        Console.WriteLine($"✅ База данных подключена успешно!");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database connection failed: {ex.Message}");
+        Console.WriteLine($"❌ Ошибка подключения к БД: {ex.Message}");
     }
 }
 
